@@ -47,6 +47,36 @@ def normalize_data(data):
     return normalized_data, mean, std
 
 
+def denormalize_parameters(theta0, theta1, mileages_mean, mileages_std, prices_mean, prices_std):
+    
+    original_theta1 = theta1 * (prices_std / mileages_std)
+    original_theta0 = prices_mean + prices_std * theta0 - original_theta1 * mileages_mean
+
+    return original_theta0, original_theta1
+
+def estimate_price(mileage, theta0, theta1):
+    return theta0 + theta1 * mileage
+
+
+def compute_gradients_batch(batch_mileages, batch_prices, theta0, theta1):
+    m = len(batch_prices)
+    tmp_theta0 = 0
+    tmp_theta1 = 0
+    
+    for i in range(m):
+        estimate = estimate_price(batch_mileages[i], theta0, theta1)
+        error = estimate - batch_prices[i]
+        tmp_theta0 += error
+        tmp_theta1 += error * batch_mileages[i]
+
+    return (1 / m) * tmp_theta0, (1 / m) * tmp_theta1
+
+
+def compute_cost(prices, predictions):
+    m = len(prices)
+    cost = (1 / (2 * m)) * np.sum((predictions - prices) ** 2)
+    return cost
+
 def train_model_with_batches(mileages, prices, learning_rate=0.01, num_iterations=1000, batch_size=32):
     mileages_norm, mileages_mean, mileages_std = normalize_data(mileages)
     prices_norm, prices_mean, prices_std = normalize_data(prices)
@@ -55,7 +85,27 @@ def train_model_with_batches(mileages, prices, learning_rate=0.01, num_iteration
     theta1 = 0
     costs = []
     # training loop
-
+    batch_size = min(batch_size, m)
+    
+    for iteration in range(num_iterations):
+        for batch_start in range(0, m, batch_size):
+            batch_end = min(batch_start + batch_size, m)
+            batch_mileages = mileages_norm[batch_start:batch_end]
+            batch_prices = prices_norm[batch_start:batch_end]
+            
+            grad_theta0, grad_theta1 = compute_gradients_batch(batch_mileages, batch_prices, theta0, theta1)
+            
+            theta0 = theta0 - learning_rate * grad_theta0
+            theta1 = theta1 - learning_rate * grad_theta1
+        
+        if iteration % 10 == 0:
+            predictions = [estimate_price(mileage, theta0, theta1) for mileage in mileages_norm]
+            cost = compute_cost(prices_norm, predictions)
+            costs.append(cost)
+            print(f"Iteration {iteration}: Cost = {cost}, theta0 = {theta0}, theta1 = {theta1}")
+            
+    original_theta0, original_theta1 = denormalize_parameters(theta0, theta1, mileages_mean, mileages_std, prices_mean, prices_std)
+    return original_theta0, original_theta1, costs
 
 
 def main():
