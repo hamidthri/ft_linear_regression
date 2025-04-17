@@ -32,6 +32,29 @@ def load_data(file_path):
     return np.array(mileages), np.array(prices)
 
 
+def normalize_data(data):
+    mean = sum(data) / len(data)
+    
+    variance = sum((x - mean) ** 2 for x in data) / len(data)
+    std = variance ** 0.5
+    
+    if std == 0:
+        std = 1
+    
+    normalized_data = [(x - mean) / std for x in data]
+    normalized_data = np.array(normalized_data)
+    
+    return normalized_data, mean, std
+
+
+def train_model_with_batches(mileages, prices, learning_rate=0.01, num_iterations=1000, batch_size=32):
+    mileages_norm, mileages_mean, mileages_std = normalize_data(mileages)
+    prices_norm, prices_mean, prices_std = normalize_data(prices)
+    
+    theta0 = 0
+    theta1 = 0
+    costs = []
+    # training loop
 
 
 
@@ -54,3 +77,4 @@ def main():
     except ValueError:
         print("Invalid input. Using default values.")
         
+    theta0, theta1, costs = train_model_with_batches(mileages, prices, learning_rate, num_iterations, batch_size)
