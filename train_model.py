@@ -84,7 +84,10 @@ def train_model_with_batches(mileages, prices, learning_rate=0.01, num_iteration
     theta0 = 0
     theta1 = 0
     costs = []
+    m = len(prices_norm)
+    batch_size = min(batch_size, m)
     # training loop
+
     batch_size = min(batch_size, m)
     
     for iteration in range(num_iterations):
